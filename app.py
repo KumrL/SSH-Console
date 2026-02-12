@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import paramiko
 
 class App(ctk.CTk):
     def __init__(self):
@@ -10,17 +11,42 @@ class App(ctk.CTk):
         self.draw_gui()
 
     def draw_gui(self):
-        #drwing top frame
+        #self top frame
         self.top_frame = ctk.CTkFrame(self)
-        self.top_frame.place(relwidth=1, relheight=0.95)
+        self.top_frame.place(relwidth=1, relheight=0.05, rely=0)
 
-        self.input_log = ctk.CTkTextbox(self.top_frame, state="disabled")
+        hostname_lbl = ctk.CTkLabel(self.top_frame, text="Hostname:")
+        hostname_lbl.grid(row=0, column=0)
+        self.hostname_entry = ctk.CTkEntry(self.top_frame)
+        self.hostname_entry.grid(row=0, column=1, padx=(0,25))
+
+        username_lbl = ctk.CTkLabel(self.top_frame, text="Username:")
+        username_lbl.grid(row=0, column=2)
+        self.username_entry = ctk.CTkEntry(self.top_frame)
+        self.username_entry.grid(row=0, column=3, padx=(0,25), pady=5)
+
+        password_lbl = ctk.CTkLabel(self.top_frame, text="Password:")
+        password_lbl.grid(row=0, column=4)
+        self.password_entry = ctk.CTkEntry(self.top_frame, show="*")
+        self.password_entry.grid(row=0, column=5, padx=(0,30))
+
+        self.connect_button = ctk.CTkButton(self.top_frame, text="Connect", command=lambda: [self.server_conection(self.hostname_entry.get(), self.username_entry.get(), self.password_entry.get())])
+        self.connect_button.grid(row=0, column=6, padx=(30,15))
+
+        self.disconect_button = ctk.CTkButton(self.top_frame, text="Disconnect", state="disabled")
+        self.disconect_button.grid(row=0, column=7)
+
+        #drwing middle frame
+        self.middle_frame = ctk.CTkFrame(self)
+        self.middle_frame.place(relwidth=1, relheight=0.90, rely=0.05)
+
+        self.input_log = ctk.CTkTextbox(self.middle_frame, state="disabled")
         self.input_log.place(relwidth=0.33, relheight=1)
 
-        self.output_log = ctk.CTkTextbox(self.top_frame, state="disabled")
+        self.output_log = ctk.CTkTextbox(self.middle_frame, state="disabled")
         self.output_log.place(relx=0.33, relwidth=0.34, relheight=1)
 
-        self.error_log = ctk.CTkTextbox(self.top_frame, state="disabled")
+        self.error_log = ctk.CTkTextbox(self.middle_frame, state="disabled")
         self.error_log.place(relx=0.67, relwidth=0.33, relheight=1)
 
         #drawimg bottom frame
@@ -32,6 +58,20 @@ class App(ctk.CTk):
 
         self.send_button = ctk.CTkButton(self.bottom_frame, text="Send")
         self.send_button.place(relx=0.9, relwidth=0.1, relheight=1)
+
+    def server_conection(self, hostname, username, password):
+        self.client = paramiko.SSHClient()
+        self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            self.client.connect(hostname, username=username, password=password)
+            print("Connection successful")
+            self.disconect_button.configure(state="normal")
+            self.connect_button.configure(state="disabled")
+            return self.client
+        except Exception as e:
+            print(f"Connection failed: {e}")
+            return None
+        
 
 ctk.set_appearance_mode("dark")
 app = App()
