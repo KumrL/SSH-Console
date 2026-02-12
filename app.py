@@ -33,20 +33,20 @@ class App(ctk.CTk):
         self.connect_button = ctk.CTkButton(self.top_frame, text="Connect", command=lambda: [self.server_conection(self.hostname_entry.get(), self.username_entry.get(), self.password_entry.get())])
         self.connect_button.grid(row=0, column=6, padx=(30,15))
 
-        self.disconect_button = ctk.CTkButton(self.top_frame, text="Disconnect", state="disabled")
+        self.disconect_button = ctk.CTkButton(self.top_frame, text="Disconnect", state="disabled", command=lambda: [self.server_desconection()])
         self.disconect_button.grid(row=0, column=7)
 
         #drwing middle frame
         self.middle_frame = ctk.CTkFrame(self)
         self.middle_frame.place(relwidth=1, relheight=0.90, rely=0.05)
 
-        self.input_log = ctk.CTkTextbox(self.middle_frame, state="disabled")
+        self.input_log = ctk.CTkTextbox(self.middle_frame, state="disabled", border_width=2)
         self.input_log.place(relwidth=0.33, relheight=1)
 
-        self.output_log = ctk.CTkTextbox(self.middle_frame, state="disabled")
+        self.output_log = ctk.CTkTextbox(self.middle_frame, state="disabled", border_width=2)
         self.output_log.place(relx=0.33, relwidth=0.34, relheight=1)
 
-        self.error_log = ctk.CTkTextbox(self.middle_frame, state="disabled")
+        self.error_log = ctk.CTkTextbox(self.middle_frame, state="disabled", border_width=2)
         self.error_log.place(relx=0.67, relwidth=0.33, relheight=1)
 
         #drawimg bottom frame
@@ -67,11 +67,29 @@ class App(ctk.CTk):
             print("Connection successful")
             self.disconect_button.configure(state="normal")
             self.connect_button.configure(state="disabled")
+            self.hostname_entry.configure(state="disabled")
+            self.username_entry.configure(state="disabled")
+            self.password_entry.configure(state="disabled")
+            self.input_log.configure(state="normal")
+            self.input_log.insert("end", f"Connected to {hostname}\n")
+            self.input_log.configure(state="disabled")
             return self.client
         except Exception as e:
-            print(f"Connection failed: {e}")
+            self.error_log.configure(state="normal")
+            self.error_log.insert("end", f"Connection failed: {str(e)}\n")
+            self.error_log.configure(state="disabled")
             return None
         
+    def server_desconection(self):
+        self.client.close()
+        self.disconect_button.configure(state="disabled")
+        self.connect_button.configure(state="normal")
+        self.hostname_entry.configure(state="normal")
+        self.username_entry.configure(state="normal")
+        self.password_entry.configure(state="normal")
+        self.input_log.configure(state="normal")
+        self.input_log.insert("end", f"Disconnected from {self.hostname_entry.get()}\n")
+        self.input_log.configure(state="disabled")
 
 ctk.set_appearance_mode("dark")
 app = App()
