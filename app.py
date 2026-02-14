@@ -56,7 +56,7 @@ class App(ctk.CTk):
         self.command_entry = ctk.CTkEntry(self.bottom_frame)
         self.command_entry.place(relwidth=0.9, relheight=1)
 
-        self.send_button = ctk.CTkButton(self.bottom_frame, text="Send")
+        self.send_button = ctk.CTkButton(self.bottom_frame, text="Send", command=lambda: self.send_command(self.command_entry.get()))
         self.send_button.place(relx=0.9, relwidth=0.1, relheight=1)
 
     def server_conection(self, hostname, username, password):
@@ -90,6 +90,19 @@ class App(ctk.CTk):
         self.input_log.configure(state="normal")
         self.input_log.insert("end", f"Disconnected from {self.hostname_entry.get()}\n")
         self.input_log.configure(state="disabled")
+
+    def send_command(self, command):
+        if self.client:
+            stdin, stdout, stderr = self.client.exec_command(command)
+            self.input_log.configure(state="normal")
+            self.input_log.insert("end", f"{command}\n")
+            self.output_log.configure(state="normal")
+            self.output_log.insert("end", f"{stdout.read().decode()}\n")
+            self.error_log.configure(state="normal")
+            self.error_log.insert("end", f"{stderr.read().decode()}\n")
+            self.input_log.configure(state="disabled")
+            self.output_log.configure(state="disabled")
+            self.error_log.configure(state="disabled")
 
 ctk.set_appearance_mode("dark")
 app = App()
