@@ -12,7 +12,7 @@ class App(ctk.CTk):
         self.draw_gui()
 
     def draw_gui(self):
-        #Menu bar
+        #menu bar
         menubar = tk.Menu(self)
         menu_file = tk.Menu(menubar, tearoff=0)
         menu_file.add_command(label="Export Log", command=self.quit)
@@ -73,14 +73,13 @@ class App(ctk.CTk):
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
             self.client.connect(hostname, username=username, password=password)
-            print("Connection successful")
             self.disconect_button.configure(state="normal")
             self.connect_button.configure(state="disabled")
             self.hostname_entry.configure(state="disabled")
             self.username_entry.configure(state="disabled")
             self.password_entry.configure(state="disabled")
             self.input_log.configure(state="normal")
-            self.input_log.insert("end", f"Connected to {hostname}\n")
+            self.input_log.insert("end", f"Connected to {hostname}\n\n")
             self.input_log.configure(state="disabled")
             return self.client
         except Exception as e:
@@ -103,12 +102,24 @@ class App(ctk.CTk):
     def send_command(self, command):
         if self.client:
             stdin, stdout, stderr = self.client.exec_command(command)
+            out = stdout.read().decode()
+            err = stderr.read().decode()
+
             self.input_log.configure(state="normal")
-            self.input_log.insert("end", f"{command}\n")
-            self.output_log.configure(state="normal")
-            self.output_log.insert("end", f"{stdout.read().decode()}\n")
-            self.error_log.configure(state="normal")
-            self.error_log.insert("end", f"{stderr.read().decode()}\n")
+            self.input_log.insert("end", f"{command}\n\n")
+
+            if out == '':
+                pass
+            else:
+                self.output_log.configure(state="normal")
+                self.output_log.insert("end", f"{out}\n")
+
+            if err == '': 
+                pass
+            else:
+                self.error_log.configure(state="normal")
+                self.error_log.insert("end", f"{err}\n")
+            
             self.input_log.configure(state="disabled")
             self.output_log.configure(state="disabled")
             self.error_log.configure(state="disabled")
