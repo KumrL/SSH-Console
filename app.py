@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import paramiko
+import tkinter as tk
 
 class App(ctk.CTk):
     def __init__(self):
@@ -11,6 +12,14 @@ class App(ctk.CTk):
         self.draw_gui()
 
     def draw_gui(self):
+        #Menu bar
+        menubar = tk.Menu(self)
+        menu_file = tk.Menu(menubar, tearoff=0)
+        menu_file.add_command(label="Export Log", command=self.quit)
+        menu_file.add_command(label="Export Error Log", command=self.quit)
+        menubar.add_cascade(label="File", menu=menu_file)
+        self.config(menu=menubar)
+
         #self top frame
         self.top_frame = ctk.CTkFrame(self)
         self.top_frame.place(relwidth=1, relheight=0.05, rely=0)
