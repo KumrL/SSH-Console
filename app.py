@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import paramiko
 import tkinter as tk
+import time
 
 class App(ctk.CTk):
     def __init__(self):
@@ -9,14 +10,16 @@ class App(ctk.CTk):
         self.title("SSH Console")
         self.geometry("1250x750")
         self.resizable(False, False)
+        self.full_log = []
+        self.err_log = []
         self.draw_gui()
 
     def draw_gui(self):
         #menu bar
         menubar = tk.Menu(self)
         menu_file = tk.Menu(menubar, tearoff=0)
-        menu_file.add_command(label="Export Log", command=self.quit)
-        menu_file.add_command(label="Export Error Log", command=self.quit)
+        menu_file.add_command(label="Export Log", command=lambda: self.export_log('full', self.full_log))
+        menu_file.add_command(label="Export Error Log", command=lambda: self.export_log('error', self.err_log))
         menubar.add_cascade(label="File", menu=menu_file)
         self.config(menu=menubar)
 
@@ -37,13 +40,18 @@ class App(ctk.CTk):
         password_lbl = ctk.CTkLabel(self.top_frame, text="Password:")
         password_lbl.grid(row=0, column=4)
         self.password_entry = ctk.CTkEntry(self.top_frame, show="*")
-        self.password_entry.grid(row=0, column=5, padx=(0,30))
+        self.password_entry.grid(row=0, column=5, padx=(0,25))
 
-        self.connect_button = ctk.CTkButton(self.top_frame, text="Connect", command=lambda: [self.server_conection(self.hostname_entry.get(), self.username_entry.get(), self.password_entry.get())])
-        self.connect_button.grid(row=0, column=6, padx=(30,15))
+        port_lbl = ctk.CTkLabel(self.top_frame, text="Port:")
+        port_lbl.grid(row=0, column=6)
+        self.port_entry = ctk.CTkEntry(self.top_frame)
+        self.port_entry.grid(row=0, column=7, padx=(0,30))
+
+        self.connect_button = ctk.CTkButton(self.top_frame, text="Connect", command=lambda: [self.server_conection(self.hostname_entry.get(), self.username_entry.get(), self.password_entry.get(), self.port_entry.get())])
+        self.connect_button.grid(row=0, column=8, padx=(30,15))
 
         self.disconect_button = ctk.CTkButton(self.top_frame, text="Disconnect", state="disabled", command=lambda: [self.server_desconection()])
-        self.disconect_button.grid(row=0, column=7)
+        self.disconect_button.grid(row=0, column=9)
 
         #drwing middle frame
         self.middle_frame = ctk.CTkFrame(self)
@@ -68,23 +76,41 @@ class App(ctk.CTk):
         self.send_button = ctk.CTkButton(self.bottom_frame, text="Send", command=lambda: self.send_command(self.command_entry.get()))
         self.send_button.place(relx=0.9, relwidth=0.1, relheight=1)
 
-    def server_conection(self, hostname, username, password):
+    def server_conection(self, hostname, username, password, port):
+        self.full_log = []
+        self.err_log = []
         self.client = paramiko.SSHClient()
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
-            self.client.connect(hostname, username=username, password=password)
+            if port:
+                port = int(port)
+            else:
+                port = 22
+            self.client.connect(hostname, port=port, username=username, password=password)
             self.disconect_button.configure(state="normal")
             self.connect_button.configure(state="disabled")
             self.hostname_entry.configure(state="disabled")
             self.username_entry.configure(state="disabled")
             self.password_entry.configure(state="disabled")
+            self.port_entry.configure(state="disabled")
+
             self.input_log.configure(state="normal")
+            self.input_log.delete("1.0", "end")
             self.input_log.insert("end", f"Connected to {hostname}\n\n")
             self.input_log.configure(state="disabled")
+
+            self.output_log.configure(state="normal")
+            self.output_log.delete("1.0", "end")
+            self.output_log.configure(state="disabled")
+
+            self.error_log.configure(state="normal")
+            self.error_log.delete("1.0", "end")
+            self.error_log.configure(state="disabled")
+
             return self.client
         except Exception as e:
             self.error_log.configure(state="normal")
-            self.error_log.insert("end", f"Connection failed: {str(e)}\n")
+            self.error_log.insert("end", f"Connection failed: {str(e)}\n\n")
             self.error_log.configure(state="disabled")
             return None
         
@@ -95,8 +121,9 @@ class App(ctk.CTk):
         self.hostname_entry.configure(state="normal")
         self.username_entry.configure(state="normal")
         self.password_entry.configure(state="normal")
+        self.port_entry.configure(state="normal")
         self.input_log.configure(state="normal")
-        self.input_log.insert("end", f"Disconnected from {self.hostname_entry.get()}\n")
+        self.input_log.insert("end", f"Disconnected from {self.hostname_entry.get()}\n\n")
         self.input_log.configure(state="disabled")
 
     def send_command(self, command):
@@ -105,24 +132,52 @@ class App(ctk.CTk):
             out = stdout.read().decode()
             err = stderr.read().decode()
 
-            self.input_log.configure(state="normal")
-            self.input_log.insert("end", f"{command}\n\n")
+            if command:
+                self.full_log.append(time.strftime(f"%a/%b/%Y(%H:%M:%S) -command- {command}\n", time.localtime()))
+                self.input_log.configure(state="normal")
+                self.input_log.insert("end", f"{command}\n\n")
+            else:
+                pass
 
             if out == '':
                 pass
             else:
+                self.full_log.append(time.strftime(f"%a/%b/%Y(%H:%M:%S) -output- {out}", time.localtime()))
                 self.output_log.configure(state="normal")
                 self.output_log.insert("end", f"{out}\n")
 
             if err == '': 
                 pass
             else:
+                self.full_log.append(time.strftime(f"%a/%b/%Y(%H:%M:%S) -error- {err}", time.localtime()))
+                self.err_log.append(time.strftime(f"%a/%b/%Y(%H:%M:%S) -error- {err}", time.localtime()))
                 self.error_log.configure(state="normal")
                 self.error_log.insert("end", f"{err}\n")
             
             self.input_log.configure(state="disabled")
             self.output_log.configure(state="disabled")
             self.error_log.configure(state="disabled")
+            self.command_entry.delete(0, "end")
+            
+    def export_log(self, kind, log):
+        dirname = tk.filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
+        if not dirname:
+            pass
+        else:
+            if kind == 'error':
+                if log:
+                    with open(dirname, 'wb') as f:
+                        for e in log:
+                            f.write((e+"\n").encode())
+                else:
+                    pass
+            else:
+                if log:
+                    with open(dirname, 'wb') as f:
+                        for e in log:
+                            f.write((e+"\n").encode())
+                else:
+                    pass
 
 ctk.set_appearance_mode("dark")
 app = App()
