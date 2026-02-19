@@ -12,9 +12,10 @@ class App(ctk.CTk):
         self.resizable(False, False)
         self.full_log = []
         self.err_log = []
-        self.draw_gui()
+        self.draw_ssh_console_gui()
+        self.draw_saved_commands_gui()
 
-    def draw_gui(self):
+    def draw_ssh_console_gui(self):
         #menu bar
         menubar = tk.Menu(self)
         menu_file = tk.Menu(menubar, tearoff=0)
@@ -23,8 +24,15 @@ class App(ctk.CTk):
         menubar.add_cascade(label="File", menu=menu_file)
         self.config(menu=menubar)
 
-        #self top frame
-        self.top_frame = ctk.CTkFrame(self)
+        #tabview
+        self.tabview = ctk.CTkTabview(self, state='enabled') ###############
+        self.tabview.pack(fill="both", expand=True)
+        self.tabview.add("SSH Console")
+        self.tabview.add("Saved Commands")
+        self.tabview.set("SSH Console")
+
+        #top frame
+        self.top_frame = ctk.CTkFrame(self.tabview.tab("SSH Console"))
         self.top_frame.place(relwidth=1, relheight=0.05, rely=0)
 
         hostname_lbl = ctk.CTkLabel(self.top_frame, text="Hostname:")
@@ -53,8 +61,8 @@ class App(ctk.CTk):
         self.disconect_button = ctk.CTkButton(self.top_frame, text="Disconnect", state="disabled", command=lambda: [self.server_desconection()])
         self.disconect_button.grid(row=0, column=9)
 
-        #drwing middle frame
-        self.middle_frame = ctk.CTkFrame(self)
+        #dmiddle frame
+        self.middle_frame = ctk.CTkFrame(self.tabview.tab("SSH Console"))
         self.middle_frame.place(relwidth=1, relheight=0.90, rely=0.05)
 
         self.input_log = ctk.CTkTextbox(self.middle_frame, state="disabled", border_width=2)
@@ -66,8 +74,8 @@ class App(ctk.CTk):
         self.error_log = ctk.CTkTextbox(self.middle_frame, state="disabled", border_width=2)
         self.error_log.place(relx=0.67, relwidth=0.33, relheight=1)
 
-        #drawimg bottom frame
-        self.bottom_frame = ctk.CTkFrame(self)
+        #bottom frame
+        self.bottom_frame = ctk.CTkFrame(self.tabview.tab("SSH Console"))
         self.bottom_frame.place(relwidth=1, relheight=0.05, rely=0.95)
 
         self.command_entry = ctk.CTkEntry(self.bottom_frame)
@@ -75,6 +83,27 @@ class App(ctk.CTk):
 
         self.send_button = ctk.CTkButton(self.bottom_frame, text="Send", command=lambda: self.send_command(self.command_entry.get()))
         self.send_button.place(relx=0.9, relwidth=0.1, relheight=1)
+
+    def draw_saved_commands_gui(self):
+        #top frame
+        sc_top_frame = ctk.CTkFrame(self.tabview.tab("Saved Commands"), fg_color="red")
+        sc_top_frame.place(relwidth=1, relheight=0.25, rely=0)
+
+        new_command_in = ctk.CTkEntry(sc_top_frame, placeholder_text="New Command")
+        new_command_in.place(relx=0.05, rely=0.10, relwidth=0.90, relheight=0.20)
+
+        name_in = ctk.CTkEntry(sc_top_frame, placeholder_text="New Name")
+        name_in.place(relx=0.18, rely=0.40, relwidth=0.50, relheight=0.20)
+
+        add_command_btn = ctk.CTkButton(sc_top_frame, text="Save")
+        add_command_btn.place(relx= 0.72, rely=0.40, relwidth=0.10, relheight=0.20)
+
+        search_in = ctk.CTkEntry(sc_top_frame, placeholder_text='Search')
+        search_in.place(relx=0.18, rely=0.70, relwidth=0.64, relheight=0.20)
+
+        #bottom frame
+        sc_bottom_frame = ctk.CTkScrollableFrame(self.tabview.tab("Saved Commands"))
+        sc_bottom_frame.place(relwidth=1, relheight=0.75, rely=0.25)
 
     def server_conection(self, hostname, username, password, port):
         self.full_log = []
@@ -88,6 +117,7 @@ class App(ctk.CTk):
                 port = 22
             self.client.connect(hostname, port=port, username=username, password=password)
             self.disconect_button.configure(state="normal")
+            self.tabview.configure(state="normal")
             self.connect_button.configure(state="disabled")
             self.hostname_entry.configure(state="disabled")
             self.username_entry.configure(state="disabled")
@@ -116,6 +146,7 @@ class App(ctk.CTk):
         
     def server_desconection(self):
         self.client.close()
+        self.tabview.configure(state="disabled")
         self.disconect_button.configure(state="disabled")
         self.connect_button.configure(state="normal")
         self.hostname_entry.configure(state="normal")
