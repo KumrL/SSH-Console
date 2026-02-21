@@ -2,6 +2,7 @@ import customtkinter as ctk
 import paramiko
 import tkinter as tk
 import time
+from src.JsonManager import JsonManager
 
 class App(ctk.CTk):
     def __init__(self):
@@ -12,6 +13,7 @@ class App(ctk.CTk):
         self.resizable(False, False)
         self.full_log = []
         self.err_log = []
+        self.json_manager = JsonManager()
         self.draw_ssh_console_gui()
         self.draw_saved_commands_gui()
 
@@ -25,7 +27,7 @@ class App(ctk.CTk):
         self.config(menu=menubar)
 
         #tabview
-        self.tabview = ctk.CTkTabview(self, state='enabled') ###############
+        self.tabview = ctk.CTkTabview(self, state='disabled')
         self.tabview.pack(fill="both", expand=True)
         self.tabview.add("SSH Console")
         self.tabview.add("Saved Commands")
@@ -86,7 +88,7 @@ class App(ctk.CTk):
 
     def draw_saved_commands_gui(self):
         #top frame
-        sc_top_frame = ctk.CTkFrame(self.tabview.tab("Saved Commands"), fg_color="red")
+        sc_top_frame = ctk.CTkFrame(self.tabview.tab("Saved Commands"))
         sc_top_frame.place(relwidth=1, relheight=0.25, rely=0)
 
         new_command_in = ctk.CTkEntry(sc_top_frame, placeholder_text="New Command")
@@ -95,15 +97,17 @@ class App(ctk.CTk):
         name_in = ctk.CTkEntry(sc_top_frame, placeholder_text="New Name")
         name_in.place(relx=0.18, rely=0.40, relwidth=0.50, relheight=0.20)
 
-        add_command_btn = ctk.CTkButton(sc_top_frame, text="Save")
+        add_command_btn = ctk.CTkButton(sc_top_frame, text="Save", command=lambda: [self.json_manager.jwrite(name_in.get(), new_command_in.get()), name_in.delete(0, "end"), new_command_in.delete(0, "end"), self.delete_refresh_saved_commands_gui()])
         add_command_btn.place(relx= 0.72, rely=0.40, relwidth=0.10, relheight=0.20)
 
         search_in = ctk.CTkEntry(sc_top_frame, placeholder_text='Search')
         search_in.place(relx=0.18, rely=0.70, relwidth=0.64, relheight=0.20)
 
         #bottom frame
-        sc_bottom_frame = ctk.CTkScrollableFrame(self.tabview.tab("Saved Commands"))
-        sc_bottom_frame.place(relwidth=1, relheight=0.75, rely=0.25)
+        self.sc_bottom_frame = ctk.CTkScrollableFrame(self.tabview.tab("Saved Commands"))
+        self.sc_bottom_frame.place(relwidth=1, relheight=0.75, rely=0.25)
+
+        self.delete_refresh_saved_commands_gui()
 
     def server_conection(self, hostname, username, password, port):
         self.full_log = []
@@ -209,6 +213,26 @@ class App(ctk.CTk):
                             f.write((e+"\n").encode())
                 else:
                     pass
+
+    def delete_refresh_saved_commands_gui(self):
+        def delete_saved_commands_gui():
+            for widget in self.sc_bottom_frame.winfo_children():
+                widget.destroy()
+            refresh_saved_commands_gui()
+
+        def refresh_saved_commands_gui():
+            if self.json_manager.jread():
+                for i, x in enumerate(self.json_manager.jread()):
+                    command_frame = ctk.CTkFrame(self.sc_bottom_frame)
+                    command_frame.pack(fill="x", pady=5, padx=5)
+                    command_btn = ctk.CTkButton(command_frame, text=x["name"], height=40, command= lambda x=x: [self.command_entry.delete(0, "end"), self.command_entry.insert(0, x["command"]), self.tabview.set("SSH Console")])
+                    command_btn.pack(side="left", fill="x", expand=True, padx=5, pady=(0,5))
+                    delete_btn = ctk.CTkButton(command_frame, text="Delete", width=60, height=40, command= lambda i=i, x=x: [self.json_manager.jdelete(i), delete_saved_commands_gui()])
+                    delete_btn.pack(side="right", padx=5, pady=(0,5))
+            else: 
+                pass
+
+        delete_saved_commands_gui()
 
 ctk.set_appearance_mode("dark")
 app = App()
