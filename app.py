@@ -97,17 +97,18 @@ class App(ctk.CTk):
         name_in = ctk.CTkEntry(sc_top_frame, placeholder_text="New Name")
         name_in.place(relx=0.18, rely=0.40, relwidth=0.50, relheight=0.20)
 
-        add_command_btn = ctk.CTkButton(sc_top_frame, text="Save", command=lambda: [self.json_manager.jwrite(name_in.get(), new_command_in.get()), name_in.delete(0, "end"), new_command_in.delete(0, "end"), self.delete_refresh_saved_commands_gui()])
+        add_command_btn = ctk.CTkButton(sc_top_frame, text="Save", command=lambda: [self.json_manager.jwrite(name_in.get(), new_command_in.get()), name_in.delete(0, "end"), new_command_in.delete(0, "end"), self.delete_refresh_saved_commands_gui(self.json_manager.jread())])
         add_command_btn.place(relx= 0.72, rely=0.40, relwidth=0.10, relheight=0.20)
 
-        search_in = ctk.CTkEntry(sc_top_frame, placeholder_text='Search')
-        search_in.place(relx=0.18, rely=0.70, relwidth=0.64, relheight=0.20)
+        self.search_in = ctk.CTkEntry(sc_top_frame, placeholder_text='Search')
+        self.search_in.place(relx=0.18, rely=0.70, relwidth=0.64, relheight=0.20)
+        self.search_in.bind("<KeyRelease>", self.search)
 
         #bottom frame
         self.sc_bottom_frame = ctk.CTkScrollableFrame(self.tabview.tab("Saved Commands"))
         self.sc_bottom_frame.place(relwidth=1, relheight=0.75, rely=0.25)
 
-        self.delete_refresh_saved_commands_gui()
+        self.delete_refresh_saved_commands_gui(self.json_manager.jread())
 
     def server_conection(self, hostname, username, password, port):
         self.full_log = []
@@ -214,25 +215,35 @@ class App(ctk.CTk):
                 else:
                     pass
 
-    def delete_refresh_saved_commands_gui(self):
+    def delete_refresh_saved_commands_gui(self, commands_list):
         def delete_saved_commands_gui():
             for widget in self.sc_bottom_frame.winfo_children():
                 widget.destroy()
             refresh_saved_commands_gui()
 
         def refresh_saved_commands_gui():
-            if self.json_manager.jread():
-                for i, x in enumerate(self.json_manager.jread()):
+            if commands_list:
+                for i, x in enumerate(commands_list):
                     command_frame = ctk.CTkFrame(self.sc_bottom_frame)
                     command_frame.pack(fill="x", pady=5, padx=5)
                     command_btn = ctk.CTkButton(command_frame, text=x["name"], height=40, command= lambda x=x: [self.command_entry.delete(0, "end"), self.command_entry.insert(0, x["command"]), self.tabview.set("SSH Console")])
                     command_btn.pack(side="left", fill="x", expand=True, padx=5, pady=(0,5))
-                    delete_btn = ctk.CTkButton(command_frame, text="Delete", width=60, height=40, command= lambda i=i, x=x: [self.json_manager.jdelete(i), delete_saved_commands_gui()])
+                    delete_btn = ctk.CTkButton(command_frame, text="Delete", width=60, height=40, command= lambda i=i, x=x: [self.json_manager.jdelete(i), self.delete_refresh_saved_commands_gui(self.json_manager.jread())])
                     delete_btn.pack(side="right", padx=5, pady=(0,5))
             else: 
                 pass
 
         delete_saved_commands_gui()
+
+    def search(self, event):
+        commands_list = self.json_manager.jread()
+        f_commands_list = []
+        for x in commands_list:
+            if self.search_in.get().lower() in x["name"].lower():
+                f_commands_list.append(x)
+        print(f_commands_list)
+        self.delete_refresh_saved_commands_gui(f_commands_list)
+            
 
 ctk.set_appearance_mode("dark")
 app = App()
